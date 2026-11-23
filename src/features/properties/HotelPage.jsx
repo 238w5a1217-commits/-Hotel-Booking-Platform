@@ -30,16 +30,52 @@ export default function HotelPage() {
         <ArrowLeft size={18} /> Back to search
       </button>
 
-      {/* Images */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8 rounded-2xl overflow-hidden">
-        {propData.images?.slice(0, 3).map((img, i) => (
-          <img key={i} src={img} alt={propData.name}
-            className={`w-full object-cover ${i === 0 ? 'md:col-span-2 h-80' : 'h-40 md:h-auto'}`} />
-        ))}
-        {!propData.images?.length && (
-          <div className="col-span-3 h-64 bg-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-300 gap-2">
+      {/* Images Gallery */}
+      <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 bg-slate-50">
+        {!propData.images || propData.images.length === 0 ? (
+          <div className="h-64 sm:h-80 md:h-96 w-full flex flex-col items-center justify-center text-slate-300 gap-2">
             <Building2 size={56} />
             <span className="text-sm font-medium text-slate-400">No photos available</span>
+          </div>
+        ) : propData.images.length === 1 ? (
+          <div className="h-64 sm:h-80 md:h-[420px] w-full overflow-hidden">
+            <img
+              src={propData.images[0]}
+              alt={propData.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : propData.images.length === 2 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-64 sm:h-80 md:h-[420px] w-full">
+            {propData.images.slice(0, 2).map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`${propData.name} ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-64 sm:h-80 md:h-[420px] w-full">
+            <div className="md:col-span-2 h-full overflow-hidden">
+              <img
+                src={propData.images[0]}
+                alt={propData.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="hidden md:grid grid-rows-2 gap-2 h-full">
+              {propData.images.slice(1, 3).map((img, i) => (
+                <div key={i} className="h-full overflow-hidden">
+                  <img
+                    src={img}
+                    alt={`${propData.name} ${i + 2}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -71,9 +71,9 @@ The `.env` file is already in the root directory pre-configured with the MongoDB
 ```env
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb+srv://ajintara:Nagoor271%40%23@test.gg7r1on.mongodb.net/ajintara
-JWT_SECRET=ajintara_super_secret_jwt_key_2024_xK9mP
-JWT_EXPIRES_IN=7d
+MONGODB_URI=
+JWT_SECRET=
+JWT_EXPIRES_IN=
 FRONTEND_URL=http://localhost:5173
 ```
 

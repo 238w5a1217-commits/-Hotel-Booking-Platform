@@ -1,0 +1,19 @@
+const mongoose = require('mongoose');
+
+const roomTypeSchema = new mongoose.Schema(
+  {
+    property:    { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true, index: true },
+    name:        { type: String, required: true, trim: true },
+    description: { type: String },
+    basePrice:   { type: Number, required: true, min: 0 },
+    totalRooms:  { type: Number, required: true, min: 1 },
+    maxGuests:   { type: Number, required: true, min: 1 },
+    amenities:   [{ type: String }],
+    images:      [{ type: String }],
+    isActive:    { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model('RoomType', roomTypeSchema);
+

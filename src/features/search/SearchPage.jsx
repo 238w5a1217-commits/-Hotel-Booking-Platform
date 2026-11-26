@@ -72,16 +72,16 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Search Header */}
-      <div className="bg-gradient-to-r from-brand-600 to-orange-500 text-white py-14 px-4">
+      <div className="bg-gradient-to-r from-brand-600 to-orange-500 text-white py-8 sm:py-14 px-3 sm:px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl font-extrabold mb-2">Ajintara Stays</h1>
-          <p className="text-orange-100 mb-8">Discover hotels across India with instant guaranteed bookings</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold mb-1.5 sm:mb-2 tracking-tight">Ajintara Stays</h1>
+          <p className="text-xs sm:text-base text-orange-100 mb-5 sm:mb-8 font-medium">Discover verified hotels across India with instant guaranteed bookings</p>
 
-          <form onSubmit={handleSearch} className="bg-white rounded-2xl p-4 shadow-xl grid grid-cols-1 md:grid-cols-5 gap-3">
+          <form onSubmit={handleSearch} className="bg-white rounded-2xl p-3 sm:p-4 shadow-xl grid grid-cols-1 md:grid-cols-5 gap-2.5 sm:gap-3">
             <div className="relative md:col-span-1">
               <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400" />
               <input
-                className="input pl-9 text-gray-900" placeholder="Destination (e.g. Hyderabad, or leave blank for All)"
+                className="input pl-9 text-gray-900 text-sm" placeholder="Destination (e.g. Hyderabad or All)"
                 list="cities-list"
                 value={params.city} onChange={(e) => setParams({ ...params, city: e.target.value })} />
               <datalist id="cities-list">
@@ -90,34 +90,38 @@ export default function SearchPage() {
             </div>
             <div className="relative">
               <Calendar size={16} className="absolute left-3 top-3.5 text-gray-400" />
-              <input className="input pl-9 text-gray-900" type="date" required min={today}
+              <input className="input pl-9 text-gray-900 text-sm" type="date" required min={today}
                 value={params.checkIn} onChange={(e) => handleCheckInChange(e.target.value)} />
             </div>
             <div className="relative">
               <Calendar size={16} className="absolute left-3 top-3.5 text-gray-400" />
-              <input className="input pl-9 text-gray-900" type="date" required min={getTomorrow(params.checkIn)}
+              <input className="input pl-9 text-gray-900 text-sm" type="date" required min={getTomorrow(params.checkIn)}
                 value={params.checkOut} onChange={(e) => setParams({ ...params, checkOut: e.target.value })} />
             </div>
             <div className="relative">
               <Users size={16} className="absolute left-3 top-3.5 text-gray-400" />
-              <input className="input pl-9 text-gray-900" type="number" min={1} max={10} placeholder="Guests"
+              <input className="input pl-9 text-gray-900 text-sm" type="number" min={1} max={10} placeholder="Guests"
                 value={params.guests} onChange={(e) => setParams({ ...params, guests: +e.target.value })} />
             </div>
-            <button type="submit" className="btn-primary flex items-center justify-center gap-2">
+            <button type="submit" className="btn-primary py-3 flex items-center justify-center gap-2 font-bold shadow-md shadow-brand-500/20">
               <Search size={18} /> Search
             </button>
           </form>
 
-          {/* Quick city pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
-            <span className="text-orange-200">Popular:</span>
+          {/* Quick city pills with smooth horizontal swipe on mobile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-4 text-xs overflow-x-auto pb-1 px-1 scrollbar-none sm:justify-center sm:flex-wrap">
+            <span className="text-orange-200 shrink-0 font-medium hidden sm:inline">Popular:</span>
             {POPULAR_CITIES.map((c) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => handleCityPillClick(c)}
-                className={`capitalize px-3 py-1 rounded-full transition-colors ${params.city?.toLowerCase() === c ? 'bg-white text-brand-600 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'}`}>
-                {c}
+                className={`capitalize px-3 py-1.5 rounded-full font-medium transition-all shrink-0 ${
+                  params.city?.toLowerCase() === c
+                    ? 'bg-white text-brand-600 font-bold shadow-sm'
+                    : 'bg-white/20 hover:bg-white/30 text-white'
+                }`}>
+                {c === 'all' ? 'All Hotels' : c}
               </button>
             ))}
           </div>
@@ -125,28 +129,31 @@ export default function SearchPage() {
       </div>
 
       {/* Results */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {(() => {
           const displayDest = !search?.city || search.city.toLowerCase() === 'all'
             ? 'across all destinations in India'
             : `in ${search.city}`;
           return (
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-800">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">
                   {isLoading ? 'Searching verified hotels...' : `${pagination?.total || 0} properties available ${displayDest}`}
                 </h2>
                 {search && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Stay: {search.checkIn} to {search.checkOut} · {search.guests} Guest(s)
                   </p>
                 )}
               </div>
-              <select className="input w-auto text-sm"
-                value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
-                <option value="price">Price: Low to High</option>
-                <option value="-price">Price: High to Low</option>
-              </select>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <span className="text-xs text-slate-400 hidden sm:inline">Sort by:</span>
+                <select className="input w-auto text-xs sm:text-sm py-1.5 px-3 bg-white"
+                  value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
+                  <option value="price">Price: Low to High</option>
+                  <option value="-price">Price: High to Low</option>
+                </select>
+              </div>
             </div>
           );
         })()}

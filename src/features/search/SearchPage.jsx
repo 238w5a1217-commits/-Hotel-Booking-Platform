@@ -15,7 +15,7 @@ const getTomorrow = (dateStr) => {
 const today = new Date().toISOString().split('T')[0]
 const tomorrow = getTomorrow(today)
 
-const POPULAR_CITIES = ['hyderabad', 'goa', 'mumbai', 'delhi', 'bangalore', 'jaipur']
+const POPULAR_CITIES = ['all', 'hyderabad', 'mumbai', 'bangalore', 'goa', 'delhi', 'jaipur', 'chennai']
 
 export default function SearchPage() {
   const navigate = useNavigate()
@@ -162,14 +162,21 @@ export default function SearchPage() {
         )}
 
         {!isLoading && !error && hotels.length === 0 && (
-          <div className="card p-12 text-center text-gray-500 max-w-xl mx-auto">
-            <MapPin size={48} className="mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">No hotels found in <strong>{search?.city}</strong></p>
-            <p className="text-sm mt-2 text-gray-400">
-              If you haven't seeded the database yet, run this in your terminal:
+          <div className="card p-12 text-center text-slate-500 max-w-xl mx-auto border border-slate-200/90 bg-white shadow-xs">
+            <MapPin size={48} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-lg font-bold text-slate-800">No hotels currently listed in {search?.city}</p>
+            <p className="text-sm mt-1 text-slate-500">
+              Try searching another destination or exploring one of India's top travel cities:
             </p>
-            <div className="bg-gray-900 text-green-400 font-mono text-xs p-3 rounded-lg mt-3 inline-block">
-              npm run seed
+            <div className="flex flex-wrap gap-2 justify-center mt-5">
+              {['hyderabad', 'mumbai', 'bangalore', 'goa', 'delhi', 'jaipur'].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => handleCityPillClick(c)}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-bold capitalize bg-slate-100 hover:bg-brand-500 hover:text-white transition-all text-slate-700">
+                  Explore {c}
+                </button>
+              ))}
             </div>
           </div>
         )}

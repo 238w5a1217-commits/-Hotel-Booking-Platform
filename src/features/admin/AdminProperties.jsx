@@ -146,7 +146,7 @@ export default function AdminProperties() {
             className="card p-5 flex flex-col md:flex-row gap-4 border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow bg-white">
             <div className="w-full md:w-36 h-28 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200/80">
               {p.images?.[0] ? (
-                <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                <img src={p.images[0]} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
                   <Building2 size={28} />

@@ -1,8 +1,16 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
+// In production / split deployment (e.g. Vercel frontend + Render backend):
+// Set VITE_API_URL=https://your-backend.onrender.com in your frontend hosting environment.
+// In local dev or fullstack single-service deployment, it defaults to relative '/api/v1'.
+const rawBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || ''
+const baseURL = rawBaseUrl
+  ? `${rawBaseUrl.replace(/\/$/, '')}/api/v1`
+  : '/api/v1'
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -23,4 +31,3 @@ api.interceptors.response.use(
 )
 
 export default api
-

@@ -45,19 +45,19 @@ const searchHotels = asyncHandler(async (req, res) => {
     propFilter.city = { $regex: new RegExp(`^${city.trim()}$`, 'i') };
   }
 
-  // Directly fetch all approved properties from DB
-  const properties = await Property.find(propFilter).sort('-createdAt');
+  // Directly fetch all approved properties from DB with lean() for fast serialization
+  const properties = await Property.find(propFilter).sort('-createdAt').lean();
   const propIds    = properties.map((p) => p._id);
 
   // Fetch all active room types for these properties
   const roomTypes = await RoomType.find({
     property: { $in: propIds },
     isActive: true,
-  });
+  }).lean();
   const rtIds = roomTypes.map((r) => r._id);
 
   // Fetch date inventory overrides
-  const invDocs = await Inventory.find({ roomType: { $in: rtIds }, date: { $in: effectiveNights } });
+  const invDocs = await Inventory.find({ roomType: { $in: rtIds }, date: { $in: effectiveNights } }).lean();
   const invMap  = {};
   invDocs.forEach((inv) => {
     const key = inv.roomType.toString();
@@ -70,7 +70,7 @@ const searchHotels = asyncHandler(async (req, res) => {
     roomType: { $in: rtIds },
     status:   { $in: ['confirmed', 'pending'] },
     nights:   { $in: effectiveNights },
-  });
+  }).select('roomType nights quantity').lean();
   const bookedMap = {};
   bookings.forEach((b) => {
     const key = b.roomType.toString();
@@ -117,7 +117,7 @@ const searchHotels = asyncHandler(async (req, res) => {
   let results = properties.map((p) => {
     const rm = propRoomMap[p._id.toString()];
     return {
-      ...p.toObject(),
+      ...p,
       minPrice:     rm?.minPrice || 3500,
       cheapestRoom: rm?.cheapestRoom || null,
       stayCheckIn:  checkIn,

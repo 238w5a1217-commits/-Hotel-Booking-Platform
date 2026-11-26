@@ -2,7 +2,11 @@ import { Link } from 'react-router-dom'
 import { Star, MapPin, IndianRupee, Sparkles, ShieldCheck } from 'lucide-react'
 
 export default function HotelCard({ hotel, searchParams }) {
-  const imageUrl = hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'
+  const rawImage = hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'
+  // Auto-compress and resize Unsplash image for sub-second mobile loading
+  const imageUrl = rawImage.includes('images.unsplash.com')
+    ? `${rawImage.split('?')[0]}?auto=format&fit=crop&w=640&q=75`
+    : rawImage
 
   return (
     <Link
@@ -10,10 +14,12 @@ export default function HotelCard({ hotel, searchParams }) {
       state={{ searchParams }}
       className="card card-hover overflow-hidden flex flex-col group border border-slate-200/90 bg-white">
       {/* Image Thumbnail with Overlay */}
-      <div className="relative h-52 w-full overflow-hidden bg-slate-100">
+      <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
         <img
           src={imageUrl}
           alt={hotel.name}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />

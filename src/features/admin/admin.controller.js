@@ -46,7 +46,7 @@ const getDashboard = asyncHandler(async (_req, res) => {
 });
 
 const getProperties = asyncHandler(async (req, res) => {
-  const { status = 'pending', page = 1, limit = 20 } = req.query;
+  const { status = 'pending', page = 1, limit = 10 } = req.query;
   const skip = (+page - 1) * +limit;
   const [properties, total] = await Promise.all([
     Property.find({ status }).populate('partner', 'name email').skip(skip).limit(+limit).sort('-createdAt'),

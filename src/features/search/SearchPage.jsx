@@ -37,7 +37,7 @@ export default function SearchPage() {
     queryKey: ['hotels', search, page, sortBy],
     queryFn: async () => {
       const { data } = await api.get('/search/hotels', {
-        params: { ...search, page, limit: 9, sortBy },
+        params: { ...search, page, limit: 10, sortBy },
       })
       return data
     },

@@ -20,8 +20,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Safety check: if an API endpoint returned the HTML SPA fallback instead of JSON
+    if (typeof res.data === 'string' && res.data.trim().startsWith('<!DOCTYPE html')) {
+      return Promise.reject(new Error('Server returned HTML instead of JSON API response.'));
+    }
+    return res;
+  },
   (err) => {
     if (err.response?.status === 401) {
       useAuthStore.getState().logout()

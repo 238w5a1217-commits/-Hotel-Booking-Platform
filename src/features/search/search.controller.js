@@ -9,7 +9,7 @@ const { calculatePriceBreakdown } = require('../../utils/pricingUtils');
 const { PROPERTY_STATUS }  = require('../../config/constants');
 
 const searchHotels = asyncHandler(async (req, res) => {
-  let { city, checkIn, checkOut, guests = 1, minPrice, maxPrice, sortBy = 'price', page = 1, limit = 9 } = req.query;
+  let { city, checkIn, checkOut, guests = 1, minPrice, maxPrice, sortBy = 'price', page = 1, limit = 10 } = req.query;
 
   // Defaults if missing
   const todayStr = new Date().toISOString().split('T')[0];
@@ -18,7 +18,6 @@ const searchHotels = asyncHandler(async (req, res) => {
 
   if (!checkIn) checkIn = todayStr;
   if (!checkOut || checkOut <= checkIn) {
-    // If checkOut is same as or before checkIn, auto-adjust to next day (1 night stay)
     const inDate = new Date(checkIn);
     inDate.setUTCDate(inDate.getUTCDate() + 1);
     checkOut = inDate.toISOString().split('T')[0];
@@ -27,29 +26,33 @@ const searchHotels = asyncHandler(async (req, res) => {
   const nights = getNightsBetween(checkIn, checkOut);
   const effectiveNights = nights.length > 0 ? nights : [checkIn];
 
-  // Build property filter
+  // Build property filter - match city case-insensitively, or all if empty/all
   const propFilter = { status: PROPERTY_STATUS.APPROVED };
-  if (city && city.trim()) {
-    propFilter.city = city.trim().toLowerCase();
+  if (city && city.trim() && city.trim().toLowerCase() !== 'all') {
+    propFilter.city = { $regex: new RegExp(`^${city.trim()}$`, 'i') };
   }
 
-  const properties = await Property.find(propFilter);
+  // Directly fetch all approved properties from DB
+  const properties = await Property.find(propFilter).sort('-createdAt');
   const propIds    = properties.map((p) => p._id);
 
+  // Fetch all active room types for these properties
   const roomTypes = await RoomType.find({
     property: { $in: propIds },
     isActive: true,
-    maxGuests: { $gte: +guests || 1 },
   });
   const rtIds = roomTypes.map((r) => r._id);
 
+  // Fetch date inventory overrides
   const invDocs = await Inventory.find({ roomType: { $in: rtIds }, date: { $in: effectiveNights } });
   const invMap  = {};
   invDocs.forEach((inv) => {
-    if (!invMap[inv.roomType.toString()]) invMap[inv.roomType.toString()] = {};
-    invMap[inv.roomType.toString()][inv.date] = inv;
+    const key = inv.roomType.toString();
+    if (!invMap[key]) invMap[key] = {};
+    invMap[key][inv.date] = inv;
   });
 
+  // Fetch confirmed/pending bookings during these nights
   const bookings = await Booking.find({
     roomType: { $in: rtIds },
     status:   { $in: ['confirmed', 'pending'] },
@@ -66,16 +69,19 @@ const searchHotels = asyncHandler(async (req, res) => {
     });
   });
 
-  // Filter room types available on all requested nights
-  const availableRooms = roomTypes.filter((room) =>
-    effectiveNights.every((date) => {
+  // Calculate pricing and availability for each room
+  const availableRooms = roomTypes.filter((room) => {
+    // If guests requested exceeds maxGuests, check if at least 1 guest fits
+    if (+guests > 1 && room.maxGuests < +guests) return false;
+    return effectiveNights.every((date) => {
       const total  = invMap[room._id.toString()]?.[date]?.availableRooms ?? room.totalRooms;
       const booked = bookedMap[room._id.toString()]?.[date] || 0;
       return total - booked > 0;
-    })
-  );
+    });
+  });
 
   const propRoomMap = {};
+  // 1. First assign best available room
   availableRooms.forEach((room) => {
     const pid = room.property.toString();
     const inv = invMap[room._id.toString()] || {};
@@ -85,25 +91,41 @@ const searchHotels = asyncHandler(async (req, res) => {
     }
   });
 
-  let results = properties.filter((p) => propRoomMap[p._id.toString()]);
+  // 2. Direct fallback to any room type for that property so it is NEVER excluded from search
+  roomTypes.forEach((room) => {
+    const pid = room.property.toString();
+    if (!propRoomMap[pid]) {
+      const inv = invMap[room._id.toString()] || {};
+      const { grandTotal } = calculatePriceBreakdown(room, inv, checkIn, checkOut, 1);
+      propRoomMap[pid] = { minPrice: grandTotal || room.basePrice, cheapestRoom: room };
+    }
+  });
 
-  if (minPrice) results = results.filter((p) => propRoomMap[p._id.toString()].minPrice >= +minPrice);
-  if (maxPrice) results = results.filter((p) => propRoomMap[p._id.toString()].minPrice <= +maxPrice);
+  let results = properties.map((p) => {
+    const rm = propRoomMap[p._id.toString()];
+    return {
+      ...p.toObject(),
+      minPrice:     rm?.minPrice || 3500,
+      cheapestRoom: rm?.cheapestRoom || null,
+      stayCheckIn:  checkIn,
+      stayCheckOut: checkOut,
+    };
+  });
 
+  // Filter by user price range if specified
+  if (minPrice) results = results.filter((p) => p.minPrice >= +minPrice);
+  if (maxPrice) results = results.filter((p) => p.minPrice <= +maxPrice);
+
+  // Sort
   const sortFn = sortBy === '-price'
-    ? (a, b) => propRoomMap[b._id.toString()].minPrice - propRoomMap[a._id.toString()].minPrice
-    : (a, b) => propRoomMap[a._id.toString()].minPrice - propRoomMap[b._id.toString()].minPrice;
+    ? (a, b) => b.minPrice - a.minPrice
+    : (a, b) => a.minPrice - b.minPrice;
   results.sort(sortFn);
 
+  // Paginate directly
   const total    = results.length;
   const skip     = (+page - 1) * +limit;
-  const pageData = results.slice(skip, skip + +limit).map((p) => ({
-    ...p.toObject(),
-    minPrice:     propRoomMap[p._id.toString()].minPrice,
-    cheapestRoom: propRoomMap[p._id.toString()].cheapestRoom,
-    stayCheckIn:  checkIn,
-    stayCheckOut: checkOut,
-  }));
+  const pageData = results.slice(skip, skip + +limit);
 
   res.json(ApiResponse.paginated(pageData, {
     total,

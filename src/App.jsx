@@ -32,11 +32,15 @@ export default function App() {
           <Route path="/register"   element={<RegisterPage />} />
           <Route path="/hotels/:id" element={<HotelPage />} />
 
+          {/* Authenticated Routes (All Roles: Guest, Partner, Admin) */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/bookings/:id" element={<BookingDetail />} />
+          </Route>
+
           {/* Guest Protected Routes */}
           <Route element={<PrivateRoute role="guest" />}>
             <Route path="/book/:roomTypeId" element={<BookingFlow />} />
             <Route path="/my-bookings"      element={<MyBookings />} />
-            <Route path="/bookings/:id"     element={<BookingDetail />} />
           </Route>
 
           {/* Partner Protected Routes */}

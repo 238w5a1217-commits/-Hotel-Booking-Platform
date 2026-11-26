@@ -58,19 +58,32 @@ app.use(express.urlencoded({ extended: true }));
 // Logging
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
-// Health check endpoint (for deployment platforms like Render/Railway/K8s)
-app.get('/health', (_req, res) => res.json({ status: 'OK', uptime: process.uptime(), time: new Date().toISOString() }));
+// Health check endpoint (for deployment platforms like Render/Railway/K8s/Vercel)
+app.get(['/health', '/api/health'], (_req, res) => res.json({ status: 'OK', uptime: process.uptime(), time: new Date().toISOString() }));
 
-// API v1 routes
-const v1 = '/api/v1';
-app.use(`${v1}/auth`,       authRoutes);
-app.use(`${v1}/properties`, propertyRoutes);
-app.use(`${v1}/properties`, roomRoutes); // nested under /properties/:propertyId/rooms
-app.use(`${v1}/inventory`,  inventoryRoutes);
-app.use(`${v1}/bookings`,   bookingRoutes);
-app.use(`${v1}/payments`,   paymentRoutes);
-app.use(`${v1}/search`,     searchRoutes);
-app.use(`${v1}/admin`,      adminRoutes);
+// Seed endpoint for instant cloud database setup (GET / POST)
+const handleSeed = async (_req, res) => {
+  try {
+    const { seedDatabase } = require('./scripts/seedData');
+    const result = await seedDatabase(true);
+    res.json({ success: true, message: 'Database successfully seeded!', ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Seed failed', error: err.message });
+  }
+};
+app.all(['/api/v1/seed', '/v1/seed'], handleSeed);
+
+// API v1 routes (mounted on both /api/v1 and /v1 for Vercel/serverless rewrite compatibility)
+['/api/v1', '/v1'].forEach((prefix) => {
+  app.use(`${prefix}/auth`,       authRoutes);
+  app.use(`${prefix}/properties`, propertyRoutes);
+  app.use(`${prefix}/properties`, roomRoutes); // nested under /properties/:propertyId/rooms
+  app.use(`${prefix}/inventory`,  inventoryRoutes);
+  app.use(`${prefix}/bookings`,   bookingRoutes);
+  app.use(`${prefix}/payments`,   paymentRoutes);
+  app.use(`${prefix}/search`,     searchRoutes);
+  app.use(`${prefix}/admin`,      adminRoutes);
+});
 
 // Full-stack single-service deployment support:
 // If Vite production build exists in dist/, serve it directly!

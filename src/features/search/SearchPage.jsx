@@ -81,8 +81,8 @@ export default function SearchPage() {
             <div className="relative md:col-span-1">
               <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400" />
               <input
-                className="input pl-9 text-gray-900" placeholder="Destination (e.g. Hyderabad)"
-                list="cities-list" required
+                className="input pl-9 text-gray-900" placeholder="Destination (e.g. Hyderabad, or leave blank for All)"
+                list="cities-list"
                 value={params.city} onChange={(e) => setParams({ ...params, city: e.target.value })} />
               <datalist id="cities-list">
                 {citiesData?.map((c) => <option key={c} value={c} />)}
@@ -126,23 +126,30 @@ export default function SearchPage() {
 
       {/* Results */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">
-              {isLoading ? 'Searching verified hotels...' : `${pagination?.total || 0} properties available in ${search?.city || 'all destinations'}`}
-            </h2>
-            {search && (
-              <p className="text-xs text-gray-500">
-                Stay: {search.checkIn} to {search.checkOut} · {search.guests} Guest(s)
-              </p>
-            )}
-          </div>
-          <select className="input w-auto text-sm"
-            value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
-            <option value="price">Price: Low to High</option>
-            <option value="-price">Price: High to Low</option>
-          </select>
-        </div>
+        {(() => {
+          const displayDest = !search?.city || search.city.toLowerCase() === 'all'
+            ? 'across all destinations in India'
+            : `in ${search.city}`;
+          return (
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {isLoading ? 'Searching verified hotels...' : `${pagination?.total || 0} properties available ${displayDest}`}
+                </h2>
+                {search && (
+                  <p className="text-xs text-gray-500">
+                    Stay: {search.checkIn} to {search.checkOut} · {search.guests} Guest(s)
+                  </p>
+                )}
+              </div>
+              <select className="input w-auto text-sm"
+                value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
+                <option value="price">Price: Low to High</option>
+                <option value="-price">Price: High to Low</option>
+              </select>
+            </div>
+          );
+        })()}
 
         {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -164,17 +171,19 @@ export default function SearchPage() {
         {!isLoading && !error && hotels.length === 0 && (
           <div className="card p-12 text-center text-slate-500 max-w-xl mx-auto border border-slate-200/90 bg-white shadow-xs">
             <MapPin size={48} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-lg font-bold text-slate-800">No hotels currently listed in {search?.city}</p>
+            <p className="text-lg font-bold text-slate-800">
+              No hotels currently listed {!search?.city || search.city.toLowerCase() === 'all' ? 'across all destinations' : `in ${search.city}`}
+            </p>
             <p className="text-sm mt-1 text-slate-500">
-              Try searching another destination or exploring one of India's top travel cities:
+              Try exploring one of India's top travel destinations below:
             </p>
             <div className="flex flex-wrap gap-2 justify-center mt-5">
-              {['hyderabad', 'mumbai', 'bangalore', 'goa', 'delhi', 'jaipur'].map((c) => (
+              {['all', 'hyderabad', 'mumbai', 'bangalore', 'goa', 'delhi', 'jaipur'].map((c) => (
                 <button
                   key={c}
                   onClick={() => handleCityPillClick(c)}
                   className="px-3.5 py-1.5 rounded-full text-xs font-bold capitalize bg-slate-100 hover:bg-brand-500 hover:text-white transition-all text-slate-700">
-                  Explore {c}
+                  {c === 'all' ? 'Explore All Cities' : `Explore ${c}`}
                 </button>
               ))}
             </div>

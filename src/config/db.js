@@ -1,14 +1,25 @@
 const mongoose = require('mongoose');
 const dns = require('dns');
 
-// Fix for Windows, ISP DNS, & Serverless querySrv ECONNREFUSED with MongoDB Atlas
-try {
-  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
-} catch (e) {
-  // In environments where custom DNS setServers is restricted
+// Fix for Windows / ISP DNS querySrv ECONNREFUSED with MongoDB Atlas
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+  } catch (e) {
+    // In environments where custom DNS setServers is restricted
+  }
 }
 
 let cachedPromise = null;
+
+const ensureInitialData = async () => {
+  try {
+    const { seedDatabase } = require('../scripts/seedData');
+    await seedDatabase(false);
+  } catch (err) {
+    console.warn('⚠️ Auto-seed check notice (skipped):', err.message);
+  }
+};
 
 const connectDB = async () => {
   // Reuse existing connection in warm serverless containers (Vercel / AWS Lambda)
@@ -31,6 +42,8 @@ const connectDB = async () => {
   try {
     const conn = await cachedPromise;
     console.log(`✅ MongoDB connected successfully: ${conn.connection.host} [database: ${conn.connection.name}]`);
+    // Non-blocking auto-seed for fresh databases
+    ensureInitialData().catch(() => {});
     return conn;
   } catch (err) {
     cachedPromise = null;

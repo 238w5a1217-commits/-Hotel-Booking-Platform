@@ -26,9 +26,22 @@ const searchHotels = asyncHandler(async (req, res) => {
   const nights = getNightsBetween(checkIn, checkOut);
   const effectiveNights = nights.length > 0 ? nights : [checkIn];
 
+  // Self-healing: if database has 0 approved properties, seed immediately
+  const approvedCount = await Property.countDocuments({ status: PROPERTY_STATUS.APPROVED });
+  if (approvedCount === 0) {
+    try {
+      const { seedDatabase } = require('../../scripts/seedData');
+      await seedDatabase(false);
+    } catch (e) {
+      console.warn('Auto-seed in search notice:', e.message);
+    }
+  }
+
   // Build property filter - match city case-insensitively, or all if empty/all
   const propFilter = { status: PROPERTY_STATUS.APPROVED };
-  if (city && city.trim() && city.trim().toLowerCase() !== 'all') {
+  const normalizedCity = city?.trim().toLowerCase();
+  const isAllCities = !normalizedCity || ['all', 'all destinations', 'any', 'india'].includes(normalizedCity);
+  if (!isAllCities) {
     propFilter.city = { $regex: new RegExp(`^${city.trim()}$`, 'i') };
   }
 
